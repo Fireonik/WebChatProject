@@ -1,0 +1,22 @@
+{
+  "name": "spawn-python",
+  "version": "1.0.0",
+  "description": "Starter files to accompany my blog post at https://dev.to/gloriousloaf/running-other-languages-with-node-and-javascript-4n7b",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gloriousLoaf/Spawn-Python"
+  },
+  "keywords": [
+    "node",
+    "javascript",
+    "python",
+    "spawn"
+  ],
+  "author": "David Metcalf",
+  "license": "MIT"
+}
