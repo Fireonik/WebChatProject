@@ -1,0 +1,43 @@
+ <!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+		<link rel="stylesheet" href="login.css" />
+		<title>Chat App</title>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+        <script src="https://kit.fontawesome.com/05aa4b7e0a.js" crossorigin="anonymous"></script>
+        <script src="/socket.io/socket.io.js"></script>
+	</head>
+	<body>
+        <div class="wrapper">
+            <form class="login">
+              <p class="title">Chat App</p>
+              <input type="text" placeholder="Username" autofocus/>
+              <i class="fa fa-user"></i>
+              <p class="username-warning hidden">
+              <i class="fas fa-exclamation-triangle"></i>
+              User with this name does not exist                
+              </p>
+              <input type="password" placeholder="Password" />
+              <i class="fa fa-key"></i>
+              <p class="password-warning hidden">
+              <i class="fas fa-exclamation-triangle"></i>
+              Incorrect password          
+              </p>
+              <p class="error-warning hidden">
+                <i class="fas fa-exclamation-triangle"></i>
+                Server error :< 
+                </p>  
+              <a href="./sign-up.html">Sign up</a>
+              <button>
+                <i class="spinner"></i>
+                <span class="state">Log in</span>
+              </button>
+            </form>
+            </p>
+            <script src='login.js'></script>
+          </div>
+	</body>
+</html>
