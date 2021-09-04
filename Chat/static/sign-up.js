@@ -1,76 +1,95 @@
+function hidePreviousWarnings() {
+  document.querySelector(".username-warning").classList.add("hidden");
+  document.querySelector(".password-warning").classList.add("hidden");
+  document.querySelector(".error-warning").classList.add("hidden");
+}
+
+function noInput(username, password) {
+  if (username.value.length === 0) {
+    // also gives user a hint
+    username.focus();
+    return true;
+  } else if (password.value.length === 0) {
+    password.focus();
+    return true;
+  }
+}
+function passwordIsTooShort(password) {
+  if (password.value.length < 8 || password.value.length > 50) {
+    password.value = "";
+    document.querySelector(".password-warning").classList.remove("hidden");
+    return true;
+  }
+}
+function changeLoadingState(desiredState) {
+  let $this = $(".login");
+  let $state = $this.find("button > .state");
+
+  switch (desiredState) {
+    case "initial": {
+      setTimeout(() => {
+        $this.removeClass("ok loading");
+        $state.html("Sign up");
+      }, 2000);
+      break;
+    }
+    case "loading": {
+      $this.addClass("loading");
+      $state.html("Signing up");
+      break;
+    }
+    case "success": {
+      setTimeout(() => {
+        $this.addClass("ok");
+        $state.html("Success!");
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 2000);
+      }, 2000);
+      break;
+    }
+  }
+}
+
 let busy = false;
 
 $(".login").on("submit", function (e) {
   e.preventDefault();
   if (busy) return;
-  document.querySelector(".username-warning").classList.add("hidden");
-  document.querySelector(".password-warning").classList.add("hidden");
-  document.querySelector(".error-warning").classList.add("hidden");
-  const username = document.querySelector(`input[type="text"]`);
-  const password = document.querySelector(`input[type="password"]`);
+  hidePreviousWarnings();
 
-  if (username.value.length === 0) {
-    username.focus();
-    return;
-  } else if (password.value.length === 0) {
-    password.focus();
-    return;
-  }
-
+  const [username, password] = [document.querySelector(`input[type="text"]`), document.querySelector(`input[type="password"]`)];
+  
+  if (noInput(username, password) || passwordIsTooShort(password)) return;
   busy = true;
-  let $this = $(this),
-    $state = $this.find("button > .state");
-  $this.addClass("loading");
-  $state.html("Signing up");
 
-  if (password.value.length < 8 || password.value.length > 50) {
-    setTimeout(() => {
-      $this.removeClass("loading");
-      $state.html("Sign up");
-      password.value = "";
-      document.querySelector(".password-warning").classList.remove("hidden");
-      busy = false;
-      return;
-    }, 1000);
-  } else {
-    const socket = io();
-    socket.emit("signUp", {
-      username: username.value,
-      password: password.value,
-    });
-    socket.on("signUpResult", (data) => {
-      if (data === "Sign up successful") {
-        setTimeout(function () {
-          $this.addClass("ok");
-          $state.html("Success!");
-          setTimeout(function () {
-            $state.html("Sign up");
-            $this.removeClass("ok loading");
-            busy = false;
-            window.location.href = "/login.html";
-          }, 2000);
-        }, 2000);
-      } else if (data === "User already exists") {
-        setTimeout(() => {
-          $this.removeClass("loading");
-          $state.html("Sign up");
-          password.value = "";
-          document
-            .querySelector(".username-warning")
-            .classList.remove("hidden");
-          busy = false;
-          return;
-        }, 1000);
-      } else {
-        setTimeout(() => {
-          $this.removeClass("loading");
-          $state.html("Sign up");
-          password.value = "";
-          document.querySelector(".error-warning").classList.remove("hidden");
-          busy = false;
-          return;
-        }, 1000);
+  changeLoadingState("loading");
+
+  const socket = io();
+
+  socket.emit("signUp", { username: username.value, password: password.value });
+
+  socket.on("signUpResult", (result) => {
+    switch (result) {
+      case "Success": {
+        changeLoadingState("success");
+        break;
       }
-    });
-  }
+      case "User already exists": {
+        username.value = "";
+        document.querySelector(".username-warning").classList.remove("hidden");
+        break;
+      }
+      case "Unexpected error while attemting to sign up": {
+        password.value = "";
+        document.querySelector(".password-warning").classList.remove("hidden");
+        break;
+      }
+    }
+  });
+  setTimeout(() => {
+    changeLoadingState("initial");
+  }, 4000);
+  busy = false;
+
 });
