@@ -3,6 +3,7 @@ const path = require("path");
 const express = require("express");
 const http = require("http");
 const socketio = require("socket.io");
+const { addToOnline, removeFromOnline, getUsernameById } = require('./library/users.js')
 
 const app = express();
 const server = http.createServer(app);
@@ -18,12 +19,25 @@ io.on("connection", (socket) => {
       socket.emit("signUpResult", data.toString());
     });
   });
+
   socket.on("logIn", ({ username, password }) => {
     const logInAttempt = spawn("py", [`static/logIn.py`, username, password]);
     logInAttempt.stdout.on("data", (data) => {
       socket.emit("logInResult", data.toString());
+      if (data.toString() === "Success") addToOnline(socket.id, username)
     });
   });
+
+  socket.on("messageSent", ({ message, recepient, date }) => {
+    console.log(message, recepient, date)
+    getUsernameById(socket.id)
+  })
+
+  socket.on('disconnect', () => {
+    removeFromOnline(socket.id)
+  })
+
+
 });
 /* setting the port for our server
 it is either default (3000) 
