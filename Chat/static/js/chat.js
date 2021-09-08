@@ -8,6 +8,6 @@ const socket = io()
 const replyField = document.querySelector(`input[type="text"]`)
 
 replyField.addEventListener('keydown', (event) => {
-    if (event.key != 'Enter') return
+    if (event.key !== 'Enter') return
     sendMessageToServer(socket, replyField.value)
 })

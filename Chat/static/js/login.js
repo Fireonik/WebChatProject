@@ -1,7 +1,7 @@
+
 function hidePreviousWarnings() {
   document.querySelector(".username-warning").classList.add("hidden");
   document.querySelector(".password-warning").classList.add("hidden");
-  document.querySelector(".error-warning").classList.add("hidden");
 }
 
 function noInput(username, password) {
@@ -18,6 +18,7 @@ function passwordIsTooShort(password) {
   if (password.value.length < 8 || password.value.length > 50) {
     password.value = "";
     document.querySelector(".password-warning").classList.remove("hidden");
+    password.focus()
     return true;
   }
 }
@@ -29,27 +30,62 @@ function changeLoadingState(desiredState) {
     case "initial": {
       setTimeout(() => {
         $this.removeClass("ok loading");
-        $state.html("Sign up");
+        $state.html("Log in");
       }, 2000);
       break;
     }
     case "loading": {
       $this.addClass("loading");
-      $state.html("Signing up");
+      $state.html("Logging in");
       break;
     }
     case "success": {
       setTimeout(() => {
         $this.addClass("ok");
-        $state.html("Success!");
+        $state.html("Welcome!");
         setTimeout(() => {
-          window.location.href = "login.html";
+          window.location.href = "/chat.html";
         }, 2000);
       }, 2000);
       break;
     }
   }
 }
+
+function login(username, password) {
+  let request = new XMLHttpRequest();
+  request.open("POST", "/api/login", true);
+  request.setRequestHeader('Content-Type', 'application/json');
+  request.onreadystatechange = () => {
+    if (request.readyState === XMLHttpRequest.DONE && request.status === 200) {
+      response = JSON.parse(request.responseText)
+      result = response.result
+      switch (result) {
+        case "Success": {
+          changeLoadingState("success");
+          break;
+        }
+        case "User does not exist": {
+          username.value = "";
+          document.querySelector(".username-warning").classList.remove("hidden");
+          username.focus()
+          break;
+        }
+        case "Wrong password": {
+          password.value = "";
+          document.querySelector(".password-warning").classList.remove("hidden");
+          password.focus()
+          break;
+        }
+      }
+    }
+  }
+  request.send(JSON.stringify({
+    username: username.value,
+    password: password.value
+  }));
+}
+
 
 let busy = false;
 
@@ -59,34 +95,13 @@ $(".login").on("submit", function (e) {
   hidePreviousWarnings();
 
   const [username, password] = [document.querySelector(`input[type="text"]`), document.querySelector(`input[type="password"]`)];
-  
+
   if (noInput(username, password) || passwordIsTooShort(password)) return;
   busy = true;
 
   changeLoadingState("loading");
+  login(username, password)
 
-  const socket = io();
-
-  socket.emit("signUp", { username: username.value, password: password.value });
-
-  socket.on("signUpResult", (result) => {
-    switch (result) {
-      case "Success": {
-        changeLoadingState("success");
-        break;
-      }
-      case "User already exists": {
-        username.value = "";
-        document.querySelector(".username-warning").classList.remove("hidden");
-        break;
-      }
-      case "Unexpected error while attemting to sign up": {
-        password.value = "";
-        document.querySelector(".password-warning").classList.remove("hidden");
-        break;
-      }
-    }
-  });
   setTimeout(() => {
     changeLoadingState("initial");
   }, 4000);

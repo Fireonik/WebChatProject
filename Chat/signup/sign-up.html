@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <link rel="stylesheet" href="css/sign-up.css" />
+  <title>Chat App</title>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+  <script src="https://kit.fontawesome.com/05aa4b7e0a.js" crossorigin="anonymous"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+</head>
+
+<body>
+  <div class="wrapper">
+    <form class="login">
+      <p class="title">Chat App</p>
+      <input type="text" placeholder="Username" autofocus />
+      <i class="fa fa-user"></i>
+      <p class="username-warning hidden">
+        <i class="fas fa-exclamation-triangle"></i>
+        User with this name already exists
+      </p>
+      <input type="password" placeholder="Password (8-50 characters)" />
+      <i class="fa fa-key"></i>
+      <p class="password-warning hidden">
+        <i class="fas fa-exclamation-triangle"></i>
+        Incorrect password
+      </p>
+      <p class="error-warning hidden">
+        <i class="fas fa-exclamation-triangle"></i>
+        Server error :< </p>
+          <a href="/login">Already have an account?</a>
+          <button>
+            <i class="spinner"></i>
+            <span class="state">Sign up</span>
+          </button>
+    </form>
+    </p>
+    <script src='js/sign-up.js'></script>
+  </div>
+</body>
+
+</html>
