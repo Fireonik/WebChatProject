@@ -9,9 +9,9 @@ app.get('/api', (req, res) => {
   });
 });
 
-app.post('/api/posts', verifyToken, (req, res) => {  
+app.post('/api/posts', verifyToken, (req, res) => {
   jwt.verify(req.token, 'secretkey', (err, authData) => {
-    if(err) {
+    if (err) {
       res.sendStatus(403);
     } else {
       res.json({
@@ -25,12 +25,12 @@ app.post('/api/posts', verifyToken, (req, res) => {
 app.post('/api/login', (req, res) => {
   // Mock user
   const user = {
-    id: 1, 
+    id: 1,
     username: 'brad',
     email: 'brad@gmail.com'
   }
 
-  jwt.sign({user}, 'secretkey', { expiresIn: '30s' }, (err, token) => {
+  jwt.sign({ user }, 'secretkey', { expiresIn: '30s' }, (err, token) => {
     res.json({
       token
     });
@@ -45,7 +45,7 @@ function verifyToken(req, res, next) {
   // Get auth header value
   const bearerHeader = req.headers['authorization'];
   // Check if bearer is undefined
-  if(typeof bearerHeader !== 'undefined') {
+  if (typeof bearerHeader !== 'undefined') {
     // Split at the space
     const bearer = bearerHeader.split(' ');
     // Get token from array

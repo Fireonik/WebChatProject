@@ -43,9 +43,6 @@ function changeLoadingState(desiredState) {
       setTimeout(() => {
         $this.addClass("ok");
         $state.html("Welcome!");
-        setTimeout(() => {
-          window.location.href = "/chat.html";
-        }, 2000);
       }, 2000);
       break;
     }
@@ -53,6 +50,16 @@ function changeLoadingState(desiredState) {
 }
 
 function login(username, password) {
+  function proceedToChat() {
+    // let request = new XMLHttpRequest()
+    // request.open("GET", "/chat", true);
+    // authHeaderValue = "Bearer " + token
+    // request.setRequestHeader('Authorization', authHeaderValue);
+    // request.send()
+    setTimeout(() => {
+      window.location.href = '/chat';
+    }, 2000);
+  }
   let request = new XMLHttpRequest();
   request.open("POST", "/api/login", true);
   request.setRequestHeader('Content-Type', 'application/json');
@@ -63,6 +70,9 @@ function login(username, password) {
       switch (result) {
         case "Success": {
           changeLoadingState("success");
+          token = response.token
+          localStorage.setItem('token', token)
+          proceedToChat()
           break;
         }
         case "User does not exist": {

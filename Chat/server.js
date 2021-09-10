@@ -3,6 +3,7 @@ const path = require("path");
 const express = require("express");
 const http = require("http");
 const socketio = require("socket.io");
+const jwt = require('jsonwebtoken')
 const { addToOnline, removeFromOnline, getUsernameById } = require('./users.js')
 
 const app = express();
@@ -10,13 +11,23 @@ const server = http.createServer(app);
 const io = socketio(server);
 
 function login(username, password, res) {
+  function sendLoginResponse(result, token = '') {
+    res.json({
+      result: result,
+      token: token
+    });
+  }
+  console.log(username, password)
   const logInAttempt = spawn("py", [`login/logIn.py`, username, password]);
-  result = ''
   logInAttempt.stdout.on("data", (data) => {
     result = data.toString()
-    res.json({
-      result: result
-    })
+    if (result === "Success") {
+      jwt.sign({ username: username, password: password }, 'Asuka Langley Sohryu', { expiresIn: '30s' }, (err, token) => {
+        sendLoginResponse(result, token)
+      });
+    } else {
+      sendLoginResponse(result)
+    }
     // if (data.toString() === "Success") addToOnline(socket.id, username)
   })
 }
@@ -35,6 +46,7 @@ function signup(username, password, res) {
 
 // setting the static files folder
 app.use(express.static(path.join(__dirname, "static")));
+
 // body parser
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
@@ -47,8 +59,43 @@ app.get('/sign-up', (req, res) => {
   res.sendFile(path.join(__dirname, 'signup', 'sign-up.html'))
 })
 
+app.get('/chat', (req, res) => {
+  res.sendFile(path.join(__dirname, 'chat', 'chat.html'))
+})
+
+app.post('/chat', verifyToken, (req, res) => {
+  jwt.verify(req.token, 'Asuka Langley Sohryu', (err, authData) => {
+    if (err) {
+      res.sendStatus(403);
+    } else {
+      // res.sendFile(path.join(__dirname, 'chat', 'chat.html'))
+    }
+  });
+});
+
+// Verify Token
+function verifyToken(req, res, next) {
+  // Get auth header value
+  const bearerHeader = req.headers['authorization'];
+  // Check if bearer is undefined
+  if (typeof bearerHeader !== 'undefined') {
+    // Split at the space
+    const bearer = bearerHeader.split(' ');
+    // Get token from array
+    const bearerToken = bearer[1];
+    // Set the token
+    req.token = bearerToken;
+    // Next middleware
+    next();
+  } else {
+    // Forbidden
+    res.sendStatus(403);
+  }
+
+}
+
 app.post('/api/login', (req, res) => {
-  result = login(req.body.username, req.body.password, res)
+  login(req.body.username, req.body.password, res)
 })
 
 app.post('/api/signup', (req, res) => {
