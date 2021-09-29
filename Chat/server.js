@@ -4,7 +4,7 @@ const express = require("express");
 const http = require("http");
 const socketio = require("socket.io");
 const jwt = require('jsonwebtoken')
-const { addToOnline, getUsernameById, removeFromOnline } = require('./users.js')
+const { addToOnline, getUsernameById, removeFromOnline, getIdByUsername } = require('./users.js')
 
 const app = express();
 const server = http.createServer(app);
@@ -147,12 +147,9 @@ io.on("connection", (socket) => {
   socket.on("messageSent", ({ message, recepient, msFromEpoch }) => {
     console.log(message, recepient, msFromEpoch)
     username = getUsernameById(socket.id)
-    const messageRecordProcess = spawn("py", [`chat/messageRecord.py`, username, recepient, msFromEpoch, message]);
-    messageRecordProcess.stdout.on('data', (data) => {
-
-    })
-
-
+    spawn("py", [`chat/messageRecord.py`, username, recepient, msFromEpoch, message]);
+    id = getIdByUsername(recepient)
+    if (id !== -1) socket.to(id).emit('message', { sender: username, msFromEpoch, message })
   })
 
   socket.on('disconnect', () => {

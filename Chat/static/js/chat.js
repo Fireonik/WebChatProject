@@ -109,7 +109,11 @@ const socket = io()
 socket.on('wrongToken', () => {
     window.location.href = "/login"
 })
-
+socket.on('message', ({ sender, msFromEpoch, message }) => {
+    console.log(sender)
+    console.log(msFromEpoch)
+    console.log(message)
+})
 socket.emit('online', { token: token })
 
 

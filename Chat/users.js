@@ -18,8 +18,15 @@ function getUsernameById(id) {
     return usersOnline[index].username
 }
 
+function getIdByUsername(username) {
+    const index = usersOnline.findIndex(user => user.username === username)
+    if (index === -1) return -1
+    return usersOnline[index].id
+}
+
 module.exports = {
     addToOnline,
     getUsernameById,
-    removeFromOnline
+    removeFromOnline,
+    getIdByUsername
 }
