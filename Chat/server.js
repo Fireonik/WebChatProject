@@ -4,7 +4,7 @@ const express = require("express");
 const http = require("http");
 const socketio = require("socket.io");
 const jwt = require('jsonwebtoken')
-const { addToOnline, removeFromOnline, getUsernameById } = require('./users.js')
+const { addToOnline, getUsernameById, removeFromOnline } = require('./users.js')
 
 const app = express();
 const server = http.createServer(app);
@@ -22,7 +22,7 @@ function login(username, password, res) {
   logInAttempt.stdout.on("data", (data) => {
     result = data.toString()
     if (result === "Success") {
-      jwt.sign({ username: username, password: password }, 'Asuka Langley Sohryu', { expiresIn: '30s' }, (err, token) => {
+      jwt.sign({ username: username, password: password }, 'Asuka Langley Sohryu', { expiresIn: '24h' }, (err, token) => {
         sendLoginResponse(result, token)
       });
     } else {
@@ -36,6 +36,7 @@ function signup(username, password, res) {
   const signUpAttempt = spawn("py", [`signup/signUp.py`, username, password]);
   signUpAttempt.stdout.on("data", (data) => {
     result = data.toString()
+    console.log(result)
     res.json({
       result: result
     })
@@ -43,6 +44,48 @@ function signup(username, password, res) {
   })
 }
 
+// Verify Token
+function verifyToken(req, res, next) {
+  // Get auth header value
+  const bearerHeader = req.headers['authorization'];
+  // Check if bearer is undefined
+  if (typeof bearerHeader !== 'undefined') {
+    // Split at the space
+    const bearer = bearerHeader.split(' ');
+    // Get token from array
+    const bearerToken = bearer[1];
+    // Set the token
+    req.token = bearerToken;
+    // Next middleware
+    next();
+  } else {
+    // Forbidden
+    res.sendStatus(403);
+  }
+
+}
+
+function userSearch(seeked_user, res) {
+  console.log(seeked_user)
+  const userSearchProcess = spawn("py", [`chat/userSearch.py`, seeked_user]);
+  userSearchProcess.stdout.on('data', (data) => {
+    res.json(JSON.stringify(data.toString()))
+  })
+
+  // may be needed for multiple search results 
+  // const usernames = []
+  // userSearchProcess.stdout.on("data", (data) => {
+  //   username = data.toString()
+  //   usernames.push(username)
+  // })
+  // userSearchProcess.on('exit', (code) => {
+  //   if (code !== 0) {
+  //     console.log('Problem with the user search')
+  //     return
+  //   }
+  //   res.json(JSON.stringify(usernames))
+  // })
+}
 
 // setting the static files folder
 app.use(express.static(path.join(__dirname, "static")));
@@ -73,41 +116,43 @@ app.post('/chat', verifyToken, (req, res) => {
   });
 });
 
-// Verify Token
-function verifyToken(req, res, next) {
-  // Get auth header value
-  const bearerHeader = req.headers['authorization'];
-  // Check if bearer is undefined
-  if (typeof bearerHeader !== 'undefined') {
-    // Split at the space
-    const bearer = bearerHeader.split(' ');
-    // Get token from array
-    const bearerToken = bearer[1];
-    // Set the token
-    req.token = bearerToken;
-    // Next middleware
-    next();
-  } else {
-    // Forbidden
-    res.sendStatus(403);
-  }
-
-}
-
 app.post('/api/login', (req, res) => {
   login(req.body.username, req.body.password, res)
 })
 
 app.post('/api/signup', (req, res) => {
-  result = signup(req.body.username, req.body.password, res)
+  signup(req.body.username, req.body.password, res)
 })
 
+app.post('/api/user-search', (req, res) => {
+  userSearch(req.body.seeked_user, res)
+})
 
 io.on("connection", (socket) => {
 
-  socket.on("messageSent", ({ message, recepient, date }) => {
-    console.log(message, recepient, date)
-    getUsernameById(socket.id)
+  socket.on('online', ({ token }) => {
+    console.log('onlinee')
+    jwt.verify(token, 'Asuka Langley Sohryu', (err, authData) => {
+      if (err) {
+        socket.emit('wrongToken')
+      } else {
+        console.log('yes')
+        console.log(socket.id, authData.username)
+        addToOnline(socket.id, authData.username)
+      }
+
+    })
+  })
+
+  socket.on("messageSent", ({ message, recepient, msFromEpoch }) => {
+    console.log(message, recepient, msFromEpoch)
+    username = getUsernameById(socket.id)
+    const messageRecordProcess = spawn("py", [`chat/messageRecord.py`, username, recepient, msFromEpoch, message]);
+    messageRecordProcess.stdout.on('data', (data) => {
+
+    })
+
+
   })
 
   socket.on('disconnect', () => {

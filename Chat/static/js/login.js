@@ -1,4 +1,3 @@
-
 function hidePreviousWarnings() {
   document.querySelector(".username-warning").classList.add("hidden");
   document.querySelector(".password-warning").classList.add("hidden");
@@ -51,11 +50,6 @@ function changeLoadingState(desiredState) {
 
 function login(username, password) {
   function proceedToChat() {
-    // let request = new XMLHttpRequest()
-    // request.open("GET", "/chat", true);
-    // authHeaderValue = "Bearer " + token
-    // request.setRequestHeader('Authorization', authHeaderValue);
-    // request.send()
     setTimeout(() => {
       window.location.href = '/chat';
     }, 2000);
@@ -72,6 +66,7 @@ function login(username, password) {
           changeLoadingState("success");
           token = response.token
           localStorage.setItem('token', token)
+          console.log(token)
           proceedToChat()
           break;
         }

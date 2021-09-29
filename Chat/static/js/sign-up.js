@@ -44,7 +44,7 @@ function changeLoadingState(desiredState) {
         $this.addClass("ok");
         $state.html("Success!");
         setTimeout(() => {
-          window.location.href = "login.html";
+          window.location.href = "login";
         }, 2000);
       }, 2000);
       break;
