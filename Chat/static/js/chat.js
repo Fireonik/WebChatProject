@@ -6,18 +6,11 @@ function userSearchRequest(seeked_user) {
     request.onreadystatechange = () => {
         if (request.readyState === XMLHttpRequest.DONE && request.status === 200) {
             searchResult = JSON.parse(request.responseText)
-            if (!searchResult.includes('User does not exist')) {
+            const user_exists = !searchResult.includes('User does not exist')
+            const chat_is_not_added_yet = added_chats[seeked_user] === undefined
+            if (user_exists && chat_is_not_added_yet) {
                 addChat(seeked_user)
-                setChatHTML(seeked_user, 'saying something important', 'now', false)
-                added_chats[seeked_user].addEventListener('click', () => {
-                    if (selectedChat !== 0) {
-                        setChatHTML(selectedChat, 'not active anymore', 'now', false)
-                    }
-                    setChatHTML(seeked_user, 'asdasdasd', 'now', true)
-                    selectedChat = seeked_user
-
-                    setCurrChatHTML(selectedChat, true)
-                })
+                setChatHTML(seeked_user, '', '', false)
             }
         }
     }
@@ -33,13 +26,48 @@ function setCurrChatHTML(username, online = false) {
     <p class="chatName">${username}</p>
     <p class="chatStatus">${status_}</p>
 `
-
 }
 function addChat(username) {
     const newChat = document.createElement("div");
     const chatPanel = document.querySelector('.chats')
     added_chats[username] = newChat
+    last_messages[username] = ['', '']
     chatPanel.appendChild(newChat)
+    // setChatHTML(newChat,)
+
+    added_chats[username].addEventListener('click', () => {
+        if (selectedChat !== 0 && selectedChat !== username) {
+            setChatHTML(selectedChat, last_messages[selectedChat][0], last_messages[selectedChat][1], false)
+        }
+        let request = new XMLHttpRequest();
+        request.open("POST", "/api/lastmessage", true);
+        request.setRequestHeader('Content-Type', 'application/json');
+        token = localStorage.getItem('token')
+        authHeaderValue = "Bearer " + token
+        request.setRequestHeader('Authorization', authHeaderValue);
+        request.onreadystatechange = () => {
+            if (request.readyState === XMLHttpRequest.DONE && request.status === 200) {
+                last_message = JSON.parse(request.responseText)
+
+                console.log(last_message.shortenedMessage)
+                console.log(last_message.msFromEpoch)
+
+                date = new Date(Number(last_message.msFromEpoch))
+                time = formattedDate(date)
+
+                last_messages[username] = [last_message.shortenedMessage, time]
+
+                setChatHTML(username, last_messages[username][0], last_messages[username][1], true)
+            }
+        }
+        request.send(JSON.stringify({
+            username
+        }))
+
+        selectedChat = username
+
+        setCurrChatHTML(selectedChat, true)
+    })
 }
 function setChatHTML(username, message, date, active) {
     chat = added_chats[username]
@@ -105,14 +133,32 @@ function formattedDate(d = new Date) {
             .map(n => n < 10 ? `0${n}` : `${n}`).join('/');
 }
 
+
+
+
+
+
 const socket = io()
 socket.on('wrongToken', () => {
     window.location.href = "/login"
 })
 socket.on('message', ({ sender, msFromEpoch, message }) => {
-    console.log(sender)
+    console.log(sender + 'AAAAAAAAAAAAAAAAAAAAAA') // WHAT
     console.log(msFromEpoch)
     console.log(message)
+    unformattedDate = new Date(msFromEpoch)
+    date = formattedDate(unformattedDate)
+    console.log(date)
+    messageText = formatMessage(message)
+
+    if (!(sender in added_chats)) addChat(sender)
+    let isChatSelected = false
+    if (sender === selectedChat) {
+        addMessage(messageText, date, 'received')
+        isChatSelected = true
+    }
+    setChatHTML(sender, message, date, isChatSelected)
+
 })
 socket.emit('online', { token: token })
 
@@ -122,6 +168,7 @@ socket.emit('online', { token: token })
 const userSearchField = document.querySelector(`input[type="search"]`)
 const replyField = document.querySelector(`input[type="text"]`)
 const added_chats = {}
+const last_messages = {}
 let selectedChat = 0
 
 userSearchField.addEventListener('keydown', (event) => {

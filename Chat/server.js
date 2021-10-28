@@ -128,6 +128,53 @@ app.post('/api/user-search', (req, res) => {
   userSearch(req.body.seeked_user, res)
 })
 
+app.post('/api/lastmessage', verifyToken, (req, res) => {
+  jwt.verify(req.token, 'Asuka Langley Sohryu', (err, authData) => {
+    if (err) {
+      res.sendStatus(403);
+    } else {
+      console.log('last message request ' + ' to ' + authData.username + ' from ' + req.body.username)
+      const the_process = spawn("py", [`chat/lastMessage.py`, authData.username, req.body.username]);
+      the_process.stdout.on('data', (data) => {
+        console.log(data.toString())
+        const stringified_data = data.toString()
+
+        let message = ''
+        let time = ''
+        console.log(stringified_data.length)
+        let i = 0
+        while (stringified_data[i] != '\r') {
+          message += stringified_data[i]
+          i += 1
+        }
+        i += 2
+        for (let j = i; j < stringified_data.length; j++) {
+          time += stringified_data[j]
+        }
+
+        console.log(message)
+        console.log(time)
+
+        shortenedMessage = ''
+        if (message.length > 15) {
+          for (let i = 0; i < 15; i++) {
+            shortenedMessage += message[i]
+          }
+          shortenedMessage += "..."
+        } else shortenedMessage = message
+
+        res.json({
+          shortenedMessage, msFromEpoch: time
+        })
+
+      })
+      the_process.on('close', () => {
+        // console.log(response[0])
+      })
+    }
+  })
+})
+
 io.on("connection", (socket) => {
 
   socket.on('online', ({ token }) => {
@@ -152,7 +199,8 @@ io.on("connection", (socket) => {
     if (id !== -1) socket.to(id).emit('message', { sender: username, msFromEpoch, message })
   })
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', (reason) => {
+    console.log('disconnect! reason: ' + reason)
     removeFromOnline(socket.id)
   })
 
