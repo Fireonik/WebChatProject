@@ -175,6 +175,30 @@ app.post('/api/lastmessage', verifyToken, (req, res) => {
   })
 })
 
+app.post('/api/dialog-list', verifyToken, (req, res) => {
+  jwt.verify(req.token, 'Asuka Langley Sohryu', (err, authData) => {
+    if (err) {
+      console.log('error with auth')
+      res.sendStatus(403);
+    } else {
+      console.log('dialog list request from ' + authData.username)
+      const the_process = spawn("py", [`chat/dialogList.py`, authData.username]);
+
+      // it seems, python writes into stdout everything way faster then js can read it
+      // or maybe it fires 'data' event only after the whole thing is written
+      // or maybe js cannot access stdout while python hasn't finished yet
+      // anyway, for some reason creating list here and filling one element at a time is unnecessary
+      the_process.stdout.on('data', (data) => {
+        const dialog_list = (data.toString()).split('.')
+        dialog_list.pop()
+        res.json(JSON.stringify(dialog_list))
+
+      })
+    }
+  })
+})
+
+
 io.on("connection", (socket) => {
 
   socket.on('online', ({ token }) => {

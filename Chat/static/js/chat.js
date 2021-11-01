@@ -133,7 +133,25 @@ function formattedDate(d = new Date) {
             .map(n => n < 10 ? `0${n}` : `${n}`).join('/');
 }
 
+function loadDialogs() {
+    let request = new XMLHttpRequest();
+    request.open("POST", "/api/dialog-list", true);
+    token = localStorage.getItem('token')
+    authHeaderValue = "Bearer " + token
+    request.setRequestHeader('Authorization', authHeaderValue);
+    request.onreadystatechange = () => {
+        if (request.readyState === XMLHttpRequest.DONE && request.status === 200) {
+            searchResult = JSON.parse(request.responseText)
+            console.log("RESPONSE")
+            console.log(searchResult)
+            const dialogList = JSON.parse(searchResult)
+            console.log(Array.isArray(dialogList))
+            console.log(dialogList)
 
+        }
+    }
+    request.send()
+}
 
 
 
@@ -193,3 +211,4 @@ replyField.addEventListener('keydown', (event) => {
     socket.emit("messageSent", { message: message, recepient: selectedChat, msFromEpoch: msFromEpoch })
 })
 
+loadDialogs()
