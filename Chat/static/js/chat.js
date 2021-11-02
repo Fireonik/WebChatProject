@@ -28,6 +28,7 @@ function setCurrChatHTML(username, online = false) {
 `
 }
 function addChat(username) {
+    console.log('I am invoked with username: ' + username + ' ' + username.length)
     const newChat = document.createElement("div");
     const chatPanel = document.querySelector('.chats')
     added_chats[username] = newChat
@@ -142,11 +143,40 @@ function loadDialogs() {
     request.onreadystatechange = () => {
         if (request.readyState === XMLHttpRequest.DONE && request.status === 200) {
             searchResult = JSON.parse(request.responseText)
-            console.log("RESPONSE")
-            console.log(searchResult)
             const dialogList = JSON.parse(searchResult)
-            console.log(Array.isArray(dialogList))
+            console.log('Dialog list:')
             console.log(dialogList)
+            for (let i = 0; i < dialogList.length; i++) {
+                addChat(dialogList[i])
+                setChatHTML(dialogList[i], '', '', false)
+
+                let lastMessageRequest = new XMLHttpRequest();
+                lastMessageRequest.open("POST", "/api/lastmessage", true);
+                lastMessageRequest.setRequestHeader('Content-Type', 'application/json');
+                token = localStorage.getItem('token')
+                authHeaderValue = "Bearer " + token
+                lastMessageRequest.setRequestHeader('Authorization', authHeaderValue);
+                lastMessageRequest.onreadystatechange = () => {
+                    if (lastMessageRequest.readyState === XMLHttpRequest.DONE && lastMessageRequest.status === 200) {
+                        last_message = JSON.parse(lastMessageRequest.responseText)
+
+                        console.log(last_message.shortenedMessage)
+                        console.log(last_message.msFromEpoch)
+
+                        date = new Date(Number(last_message.msFromEpoch))
+                        time = formattedDate(date)
+
+                        last_messages[dialogList[i]] = [last_message.shortenedMessage, time]
+
+                        setChatHTML(dialogList[i], last_messages[dialogList[i]][0], last_messages[dialogList[i]][1], false)
+                    }
+                }
+                let temp = dialogList[i]
+                lastMessageRequest.send(JSON.stringify({ username: dialogList[i] }))
+            }
+
+
+
 
         }
     }
@@ -212,3 +242,5 @@ replyField.addEventListener('keydown', (event) => {
 })
 
 loadDialogs()
+
+

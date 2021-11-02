@@ -202,13 +202,11 @@ app.post('/api/dialog-list', verifyToken, (req, res) => {
 io.on("connection", (socket) => {
 
   socket.on('online', ({ token }) => {
-    console.log('onlinee')
     jwt.verify(token, 'Asuka Langley Sohryu', (err, authData) => {
       if (err) {
+        console.log(authData.username + ' failed to connect: wrong token')
         socket.emit('wrongToken')
       } else {
-        console.log('yes')
-        console.log(socket.id, authData.username)
         addToOnline(socket.id, authData.username)
       }
 
