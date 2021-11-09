@@ -204,12 +204,87 @@ io.on("connection", (socket) => {
   socket.on('online', ({ token }) => {
     jwt.verify(token, 'Asuka Langley Sohryu', (err, authData) => {
       if (err) {
-        console.log(authData.username + ' failed to connect: wrong token')
+        console.log('failed to connect: wrong token')
         socket.emit('wrongToken')
       } else {
+        console.log(authData.username + ' online, socket id: ' + socket.id)
         addToOnline(socket.id, authData.username)
       }
 
+    })
+  })
+
+  socket.on('messageHistory', ({ user, token }) => {
+    jwt.verify(token, 'Asuka Langley Sohryu', (err, authData) => {
+      if (err) {
+        console.log('connection attempt failed: wrong token')
+        socket.emit('wrongToken')
+      } else {
+
+        function messageListBossSecondStage(data, receivedMessages = '-1') {
+          const sentMessagesNames = (data.toString()).split('.')
+          sentMessagesNames.pop()
+
+          const sentMessages = {}
+          for (let i = 0; i < sentMessagesNames.length; i++) {
+            sentMessages[String(sentMessagesNames[i])] = 1
+          }
+          const receivedMessagesKeys = receivedMessages === '-1' ? [] : Object.keys(receivedMessages)
+          const messageHistoryFileNames = [...Object.keys(sentMessages), ...receivedMessagesKeys]
+          messageHistoryFileNames.sort()
+          const namesAndTypes = { ...sentMessages, ...receivedMessages }
+
+          const messageHistory = []
+          for (let i = 0; i < messageHistoryFileNames.length; i++) {
+            const filename = messageHistoryFileNames[i]
+            const isSent = namesAndTypes[filename] === 1
+            const sender = isSent ? authData.username : user
+            const recepient = isSent ? user : authData.username
+            const path = 'users/' + sender + '/' + recepient + '/' + filename + '.bin'
+            const type = isSent ? 'sent' : 'received'
+            const messageRetrievingProcess = spawn('py', [`chat/retrieveMessage.py`, path])
+
+            messageRetrievingProcess.stdout.on('data', (data) => {
+              messageHistory.push({ dialog: user, msFromEpoch: Number(filename), message: data.toString(), type })
+            })
+          }
+          (async function waitTillAllMessagesLoad() {
+            while (messageHistory.length < messageHistoryFileNames.length)
+              await new Promise(r => setTimeout(r, 5)); // i guess checking every 5 ms is fine
+
+            messageHistory.sort((a, b) => (a.msFromEpoch > b.msFromEpoch) ? 1 : -1)
+
+            for (let i = 0; i < messageHistory.length; i++) {
+              socket.emit('message', messageHistory[i])
+            }
+          })();
+        }
+
+        function messageListBossFirstStage(data) {
+          const receivedMessagesNames = (data.toString()).split('.')
+          receivedMessagesNames.pop()
+
+          const receivedMessages = {}
+          for (let i = 0; i < receivedMessagesNames.length; i++) {
+            receivedMessages[String(receivedMessagesNames[i])] = 0
+          }
+
+          const StageTwoProcess = spawn('py', [`chat/messageList.py`, authData.username, user])
+          StageTwoProcess.stdout.on('data', (zxcasd) => { messageListBossSecondStage(zxcasd, receivedMessages) })
+        }
+
+        const StageOneProcess = spawn('py', [`chat/messageList.py`, user, authData.username])
+        if (user !== authData.username) {
+          StageOneProcess.stdout.on('data', (data) => { messageListBossFirstStage(data) })
+        }
+        else {
+          StageOneProcess.stdout.on('data', (data) => { messageListBossSecondStage(data) })
+        }
+
+
+
+        // socket.emit('message', { sender: username, msFromEpoch, message })
+      }
     })
   })
 
@@ -218,7 +293,7 @@ io.on("connection", (socket) => {
     username = getUsernameById(socket.id)
     spawn("py", [`chat/messageRecord.py`, username, recepient, msFromEpoch, message]);
     id = getIdByUsername(recepient)
-    if (id !== -1) socket.to(id).emit('message', { sender: username, msFromEpoch, message })
+    if (id !== -1) socket.to(id).emit('message', { dialog: username, msFromEpoch, message, type: 'received' })
   })
 
   socket.on('disconnect', (reason) => {

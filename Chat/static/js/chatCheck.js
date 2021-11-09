@@ -1,6 +1,6 @@
 let request = new XMLHttpRequest()
 request.open("POST", "/chat", true);
-token = localStorage.getItem('token')
+let token = localStorage.getItem('token')
 authHeaderValue = "Bearer " + token
 request.setRequestHeader('Authorization', authHeaderValue);
 request.send()

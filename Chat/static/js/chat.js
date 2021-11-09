@@ -68,8 +68,18 @@ function addChat(username) {
         selectedChat = username
 
         setCurrChatHTML(selectedChat, true)
+        const messageHistoryPanel = document.querySelector('.convHistory')
+        while (messageHistoryPanel.firstChild) {
+            console.log('WTF')
+            messageHistoryPanel.removeChild(messageHistoryPanel.lastChild);
+        }
+        loadMessageHistoryWith(selectedChat)
     })
 }
+function loadMessageHistoryWith(username) {
+    socket.emit('messageHistory', { user: username, token: token })
+}
+
 function setChatHTML(username, message, date, active) {
     chat = added_chats[username]
     shortenedMessage = ''
@@ -135,17 +145,17 @@ function formattedDate(d = new Date) {
 }
 
 function loadDialogs() {
+    const authHeaderValue = "Bearer " + localStorage.getItem('token')
+
     let request = new XMLHttpRequest();
-    request.open("POST", "/api/dialog-list", true);
-    token = localStorage.getItem('token')
-    authHeaderValue = "Bearer " + token
+    request.open("POST", "/api/dialog-list", true)
     request.setRequestHeader('Authorization', authHeaderValue);
+
     request.onreadystatechange = () => {
         if (request.readyState === XMLHttpRequest.DONE && request.status === 200) {
-            searchResult = JSON.parse(request.responseText)
+            const searchResult = JSON.parse(request.responseText)
             const dialogList = JSON.parse(searchResult)
-            console.log('Dialog list:')
-            console.log(dialogList)
+
             for (let i = 0; i < dialogList.length; i++) {
                 addChat(dialogList[i])
                 setChatHTML(dialogList[i], '', '', false)
@@ -153,30 +163,21 @@ function loadDialogs() {
                 let lastMessageRequest = new XMLHttpRequest();
                 lastMessageRequest.open("POST", "/api/lastmessage", true);
                 lastMessageRequest.setRequestHeader('Content-Type', 'application/json');
-                token = localStorage.getItem('token')
-                authHeaderValue = "Bearer " + token
                 lastMessageRequest.setRequestHeader('Authorization', authHeaderValue);
+
                 lastMessageRequest.onreadystatechange = () => {
                     if (lastMessageRequest.readyState === XMLHttpRequest.DONE && lastMessageRequest.status === 200) {
-                        last_message = JSON.parse(lastMessageRequest.responseText)
 
-                        console.log(last_message.shortenedMessage)
-                        console.log(last_message.msFromEpoch)
-
-                        date = new Date(Number(last_message.msFromEpoch))
-                        time = formattedDate(date)
+                        const last_message = JSON.parse(lastMessageRequest.responseText)
+                        const date = new Date(Number(last_message.msFromEpoch))
+                        const time = formattedDate(date)
 
                         last_messages[dialogList[i]] = [last_message.shortenedMessage, time]
-
                         setChatHTML(dialogList[i], last_messages[dialogList[i]][0], last_messages[dialogList[i]][1], false)
                     }
                 }
-                let temp = dialogList[i]
                 lastMessageRequest.send(JSON.stringify({ username: dialogList[i] }))
             }
-
-
-
 
         }
     }
@@ -190,8 +191,8 @@ const socket = io()
 socket.on('wrongToken', () => {
     window.location.href = "/login"
 })
-socket.on('message', ({ sender, msFromEpoch, message }) => {
-    console.log(sender + 'AAAAAAAAAAAAAAAAAAAAAA') // WHAT
+socket.on('message', ({ dialog, msFromEpoch, message, type }) => {
+    console.log(dialog)
     console.log(msFromEpoch)
     console.log(message)
     unformattedDate = new Date(msFromEpoch)
@@ -199,15 +200,16 @@ socket.on('message', ({ sender, msFromEpoch, message }) => {
     console.log(date)
     messageText = formatMessage(message)
 
-    if (!(sender in added_chats)) addChat(sender)
+    if (!(dialog in added_chats)) addChat(dialog)
     let isChatSelected = false
-    if (sender === selectedChat) {
-        addMessage(messageText, date, 'received')
+    if (dialog === selectedChat) {
+        addMessage(messageText, date, type)
         isChatSelected = true
     }
-    setChatHTML(sender, message, date, isChatSelected)
+    if (type === 'received') setChatHTML(dialog, message, date, isChatSelected)
 
 })
+// token is declared in chatCheck.js
 socket.emit('online', { token: token })
 
 
@@ -242,5 +244,6 @@ replyField.addEventListener('keydown', (event) => {
 })
 
 loadDialogs()
+
 
 
