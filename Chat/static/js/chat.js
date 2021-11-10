@@ -110,30 +110,9 @@ function addMessage(text, date, type = "sent") {
     messageHistoryPanel.appendChild(newMessage)
     newMessage.innerHTML = `
     <div class="msg ${messageType}">
-    ${text}
+    <div class='messageText'>${text}</div>
     <span class="timestamp">${date}</span>
     </div>`
-}
-
-function formatMessage(message) {
-    const maxLen = 58
-    result = ''
-    if (message.length <= maxLen) return message
-
-    strings = ((message.length - message.length % maxLen) / maxLen)
-
-    for (let i = 0; i < strings * maxLen; i += maxLen) {
-        for (let j = i; j < i + maxLen; j++) {
-            result += message[j]
-        }
-        result += '\n'
-    }
-    if (message.length % maxLen !== 0) {
-        for (let i = strings * maxLen; i < message.length; i++) {
-            result += message[i]
-        }
-    }
-    return result
 }
 
 function formattedDate(d = new Date) {
@@ -198,13 +177,14 @@ socket.on('message', ({ dialog, msFromEpoch, message, type }) => {
     unformattedDate = new Date(msFromEpoch)
     date = formattedDate(unformattedDate)
     console.log(date)
-    messageText = formatMessage(message)
 
     if (!(dialog in added_chats)) addChat(dialog)
     let isChatSelected = false
     if (dialog === selectedChat) {
-        addMessage(messageText, date, type)
+        addMessage(message, date, type)
         isChatSelected = true
+        const messageHistoryPanel = document.querySelector('.convHistory')
+        messageHistoryPanel.scrollTo(0, messageHistoryPanel.scrollHeight);
     }
     if (type === 'received') setChatHTML(dialog, message, date, isChatSelected)
 
@@ -229,13 +209,13 @@ userSearchField.addEventListener('keydown', (event) => {
 })
 
 replyField.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter' || selectedChat === 0) return
+    if (event.key !== 'Enter' || selectedChat === 0 || replyField.value === '') return
 
     const date = formattedDate()
     const msFromEpoch = Date.now()
     const messageHistory = document.querySelector(".convHistory")
 
-    message = formatMessage(replyField.value)
+    const message = replyField.value
     addMessage(message, date)
     replyField.value = ''
     messageHistory.scrollTo(0, messageHistory.scrollHeight);
