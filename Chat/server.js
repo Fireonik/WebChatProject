@@ -221,19 +221,32 @@ io.on("connection", (socket) => {
         socket.emit('wrongToken')
       } else {
 
-        function messageListBossSecondStage(data, receivedMessages = '-1') {
-          const sentMessagesNames = (data.toString()).split('.')
-          sentMessagesNames.pop()
-
+        function messageListBossSecondStage(data, receivedMessages) {
           const sentMessages = {}
-          for (let i = 0; i < sentMessagesNames.length; i++) {
-            sentMessages[String(sentMessagesNames[i])] = 1
-          }
-          const receivedMessagesKeys = receivedMessages === '-1' ? [] : Object.keys(receivedMessages)
-          const messageHistoryFileNames = [...Object.keys(sentMessages), ...receivedMessagesKeys]
-          messageHistoryFileNames.sort()
-          const namesAndTypes = { ...sentMessages, ...receivedMessages }
+          if (data !== {}) {
+            const sentMessagesNames = (data.toString()).split('.')
+            sentMessagesNames.pop()
 
+            for (let i = 0; i < sentMessagesNames.length; i++) {
+              sentMessages[String(sentMessagesNames[i])] = 1
+            }
+          }
+          const noReceivedMessages = Object.keys(receivedMessages).length === 0
+          const noSentMessages = Object.keys(sentMessages).length === 0
+
+          function getMessageHistoryFileNames() {
+            if (noReceivedMessages) {
+              if (noSentMessages) return // 0 0
+              return Object.keys(sentMessages) // 0 1
+            }
+            if (noSentMessages) return Object.keys(receivedMessages) // 1 0
+            else return [...Object.keys(receivedMessages), ...Object.keys(sentMessages)] // 1 1
+          }
+
+          messageHistoryFileNames = getMessageHistoryFileNames()
+          messageHistoryFileNames.sort()
+
+          const namesAndTypes = { ...sentMessages, ...receivedMessages }
           const messageHistory = []
           for (let i = 0; i < messageHistoryFileNames.length; i++) {
             const filename = messageHistoryFileNames[i]
@@ -253,34 +266,34 @@ io.on("connection", (socket) => {
               await new Promise(r => setTimeout(r, 5)); // i guess checking every 5 ms is fine
 
             messageHistory.sort((a, b) => (a.msFromEpoch > b.msFromEpoch) ? 1 : -1)
-
-            for (let i = 0; i < messageHistory.length; i++) {
-              socket.emit('message', messageHistory[i])
-            }
+            for (let i = 0; i < messageHistory.length; i++) socket.emit('message', messageHistory[i])
           })();
         }
 
         function messageListBossFirstStage(data) {
-          const receivedMessagesNames = (data.toString()).split('.')
-          receivedMessagesNames.pop()
-
           const receivedMessages = {}
-          for (let i = 0; i < receivedMessagesNames.length; i++) {
-            receivedMessages[String(receivedMessagesNames[i])] = 0
+
+          if (data !== {}) {
+            const receivedMessagesNames = (data.toString()).split('.')
+            receivedMessagesNames.pop()
+
+            for (let i = 0; i < receivedMessagesNames.length; i++)
+              receivedMessages[String(receivedMessagesNames[i])] = 0
           }
 
           const StageTwoProcess = spawn('py', [`chat/messageList.py`, authData.username, user])
           StageTwoProcess.stdout.on('data', (zxcasd) => { messageListBossSecondStage(zxcasd, receivedMessages) })
+          StageTwoProcess.on('exit', (code, signal) => { if (code === 1) messageListBossSecondStage({}, receivedMessages) })
         }
 
         const StageOneProcess = spawn('py', [`chat/messageList.py`, user, authData.username])
         if (user !== authData.username) {
           StageOneProcess.stdout.on('data', (data) => { messageListBossFirstStage(data) })
+          StageOneProcess.on('exit', (code, signal) => { if (code === 1) messageListBossFirstStage({}) })
         }
         else {
-          StageOneProcess.stdout.on('data', (data) => { messageListBossSecondStage(data) })
+          StageOneProcess.stdout.on('data', (data) => { messageListBossSecondStage(data), {} })
         }
-
 
 
         // socket.emit('message', { sender: username, msFromEpoch, message })

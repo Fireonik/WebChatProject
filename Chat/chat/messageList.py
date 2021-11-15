@@ -8,5 +8,8 @@ recepient = sys.argv[2]
 path = 'users/' + sender + '/' + recepient + '/'
 files = [f for f in os.listdir(path) if isfile(os.path.join(path, f))]
 
+if len(files) == 0:
+    sys.exit(1)
+
 for i in range(len(files)):
     sys.stdout.write(files[i][:-4] + '.')
