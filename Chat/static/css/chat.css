@@ -323,10 +323,20 @@ div[class~="normal"] > .fixed {
 	background: #fff;
 }
 
+input[type=file] {
+	display: none; }
+  
+
 .replyBar .attach {
+	line-height: 90px;
+	vertical-align: middle;
+	text-align: center;
+	border: none;
+	outline: none;
+	cursor: pointer;
 	width: 70px;
 	height: 70px;
-  color: #777;
+    color: #777;
 	background: #FFF;
 	float: left;
 }

@@ -292,7 +292,7 @@ io.on("connection", (socket) => {
           StageOneProcess.on('exit', (code, signal) => { if (code === 1) messageListBossFirstStage({}) })
         }
         else {
-          StageOneProcess.stdout.on('data', (data) => { messageListBossSecondStage(data), {} })
+          StageOneProcess.stdout.on('data', (data) => { messageListBossSecondStage(data, {}) })
         }
 
 
