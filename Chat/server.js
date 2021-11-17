@@ -156,8 +156,9 @@ app.post('/api/lastmessage', verifyToken, (req, res) => {
         console.log(time)
 
         shortenedMessage = ''
-        if (message.length > 15) {
-          for (let i = 0; i < 15; i++) {
+        const maxlength = 30;
+        if (message.length > maxlength) {
+          for (let i = 0; i < maxlength; i++) {
             shortenedMessage += message[i]
           }
           shortenedMessage += "..."

@@ -84,8 +84,9 @@ function setChatHTML(username, message, date, active) {
     chat = added_chats[username]
     shortenedMessage = ''
     activeStatus = (active === true) ? "active" : ''
-    if (message.length > 15) {
-        for (let i = 0; i < 15; i++) {
+    const maxlength = 30
+    if (message.length > maxlength) {
+        for (let i = 0; i < maxlength; i++) {
             shortenedMessage += message[i]
         }
         shortenedMessage += "..."

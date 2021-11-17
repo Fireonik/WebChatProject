@@ -62,6 +62,7 @@ header {
 }
 
 .trigger {
+
 	float: left;
 	width: 32px;
 	height: 32px;
@@ -84,12 +85,13 @@ header {
 }
 
 .searchChats {
-	width: calc(100% - 85px);
+	width: calc(100% - 35px);
 	height: 40px;
 	background: #EEE;
 	float: left;
 	padding: 8px;
 	margin-top: 14px;
+	margin-left: 15px;
 	border: none;
 	border-radius: 4px;
 	font-size: 14px;
@@ -155,14 +157,16 @@ header {
 .chatInfo .name {
 	float: left;
 	font-weight: 600;
-	margin-left: 80px;
+	margin-left: 30px;
+	/* margin-left original value was 80*/
 	margin-top: 18px;
 }
 
 .chatInfo .message {
 	float: left;
 	clear: left;
-	margin-left: 80px;
+	margin-left: 30px;
+	/* margin-left original value was 80*/
 	margin-top: 7px;
 }
 
@@ -288,9 +292,9 @@ div[class~="normal"] > .fixed {
 	display: block;
 	
 	position: absolute;
-	left: 0px;
-	bottom: 0px;
-	color: #AAA;
+	right: 2px;
+	bottom: 2px;
+	color:rgba(109,181,102,255);
 	user-select: none;
 	text-align: right;
 	font-size: small;
@@ -352,10 +356,11 @@ input[type=file] {
 }
 
 .replyBar .replyMessage {
-	width: calc(100% - 90px);
+	width: calc(100% - 0px);
 	float: left;
 	height: 70px;
 	padding: 0px 8px;
+	padding-left: 25px;
 	font-size: 16px;
 }
 
