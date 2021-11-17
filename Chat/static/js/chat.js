@@ -28,7 +28,6 @@ function setCurrChatHTML(username, online = false) {
 `
 }
 function addChat(username) {
-    console.log('I am invoked with username: ' + username + ' ' + username.length)
     const newChat = document.createElement("div");
     const chatPanel = document.querySelector('.chats')
     added_chats[username] = newChat
@@ -50,9 +49,6 @@ function addChat(username) {
             if (request.readyState === XMLHttpRequest.DONE && request.status === 200) {
                 last_message = JSON.parse(request.responseText)
 
-                console.log(last_message.shortenedMessage)
-                console.log(last_message.msFromEpoch)
-
                 date = new Date(Number(last_message.msFromEpoch))
                 time = formattedDate(date)
 
@@ -70,7 +66,6 @@ function addChat(username) {
         setCurrChatHTML(selectedChat, true)
         const messageHistoryPanel = document.querySelector('.convHistory')
         while (messageHistoryPanel.firstChild) {
-            console.log('WTF')
             messageHistoryPanel.removeChild(messageHistoryPanel.lastChild);
         }
         loadMessageHistoryWith(selectedChat)
@@ -172,12 +167,8 @@ socket.on('wrongToken', () => {
     window.location.href = "/login"
 })
 socket.on('message', ({ dialog, msFromEpoch, message, type }) => {
-    console.log(dialog)
-    console.log(msFromEpoch)
-    console.log(message)
     unformattedDate = new Date(msFromEpoch)
     date = formattedDate(unformattedDate)
-    console.log(date)
 
     if (!(dialog in added_chats)) addChat(dialog)
     let isChatSelected = false
@@ -205,9 +196,7 @@ let selectedChat = 0
 
 userSearchField.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return
-    console.log(userSearchField.value)
     userSearchRequest(userSearchField.value)
-    ////////////////////////////////////////////
 })
 
 replyField.addEventListener('keydown', (event) => {

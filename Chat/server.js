@@ -12,79 +12,38 @@ const io = socketio(server);
 
 function login(username, password, res) {
   function sendLoginResponse(result, token = '') {
-    res.json({
-      result: result,
-      token: token
-    });
+    res.json({ result: result, token: token });
   }
-  console.log(username, password)
+
   const logInAttempt = spawn("py", [`login/logIn.py`, username, password]);
   logInAttempt.stdout.on("data", (data) => {
     result = data.toString()
-    if (result === "Success") {
-      jwt.sign({ username: username, password: password }, 'Asuka Langley Sohryu', { expiresIn: '24h' }, (err, token) => {
-        sendLoginResponse(result, token)
-      });
-    } else {
-      sendLoginResponse(result)
-    }
-    // if (data.toString() === "Success") addToOnline(socket.id, username)
+    if (result === "Success")
+      jwt.sign({ username, password }, 'Asuka Langley Sohryu', { expiresIn: '24h' }, (err, token) => { sendLoginResponse(result, token) });
+    else sendLoginResponse(result)
   })
 }
 
 function signup(username, password, res) {
   const signUpAttempt = spawn("py", [`signup/signUp.py`, username, password]);
-  signUpAttempt.stdout.on("data", (data) => {
-    result = data.toString()
-    console.log(result)
-    res.json({
-      result: result
-    })
-    // if (data.toString() === "Success") addToOnline(socket.id, username)
-  })
+  signUpAttempt.stdout.on("data", (data) => { res.json({ result: data.toString() }) })
 }
 
-// Verify Token
 function verifyToken(req, res, next) {
-  // Get auth header value
   const bearerHeader = req.headers['authorization'];
-  // Check if bearer is undefined
-  if (typeof bearerHeader !== 'undefined') {
-    // Split at the space
-    const bearer = bearerHeader.split(' ');
-    // Get token from array
-    const bearerToken = bearer[1];
-    // Set the token
-    req.token = bearerToken;
-    // Next middleware
-    next();
-  } else {
-    // Forbidden
-    res.sendStatus(403);
-  }
+  if (typeof bearerHeader === 'undefined') res.sendStatus(403);
 
+  const bearer = bearerHeader.split(' ');
+  const bearerToken = bearer[1];
+  req.token = bearerToken;
+  next(); // Next middleware
 }
 
 function userSearch(seeked_user, res) {
-  console.log(seeked_user)
   const userSearchProcess = spawn("py", [`chat/userSearch.py`, seeked_user]);
   userSearchProcess.stdout.on('data', (data) => {
     res.json(JSON.stringify(data.toString()))
   })
-
-  // may be needed for multiple search results 
-  // const usernames = []
-  // userSearchProcess.stdout.on("data", (data) => {
-  //   username = data.toString()
-  //   usernames.push(username)
-  // })
-  // userSearchProcess.on('exit', (code) => {
-  //   if (code !== 0) {
-  //     console.log('Problem with the user search')
-  //     return
-  //   }
-  //   res.json(JSON.stringify(usernames))
-  // })
 }
 
 // setting the static files folder
@@ -108,11 +67,7 @@ app.get('/chat', (req, res) => {
 
 app.post('/chat', verifyToken, (req, res) => {
   jwt.verify(req.token, 'Asuka Langley Sohryu', (err, authData) => {
-    if (err) {
-      res.sendStatus(403);
-    } else {
-      // res.sendFile(path.join(__dirname, 'chat', 'chat.html'))
-    }
+    if (err) res.sendStatus(403);
   });
 });
 
@@ -133,15 +88,13 @@ app.post('/api/lastmessage', verifyToken, (req, res) => {
     if (err) {
       res.sendStatus(403);
     } else {
-      console.log('last message request ' + ' to ' + authData.username + ' from ' + req.body.username)
       const the_process = spawn("py", [`chat/lastMessage.py`, authData.username, req.body.username]);
       the_process.stdout.on('data', (data) => {
-        console.log(data.toString())
         const stringified_data = data.toString()
 
         let message = ''
         let time = ''
-        console.log(stringified_data.length)
+
         let i = 0
         while (stringified_data[i] != '\r') {
           message += stringified_data[i]
@@ -151,9 +104,6 @@ app.post('/api/lastmessage', verifyToken, (req, res) => {
         for (let j = i; j < stringified_data.length; j++) {
           time += stringified_data[j]
         }
-
-        console.log(message)
-        console.log(time)
 
         shortenedMessage = ''
         const maxlength = 30;
@@ -169,9 +119,6 @@ app.post('/api/lastmessage', verifyToken, (req, res) => {
         })
 
       })
-      the_process.on('close', () => {
-        // console.log(response[0])
-      })
     }
   })
 })
@@ -182,7 +129,6 @@ app.post('/api/dialog-list', verifyToken, (req, res) => {
       console.log('error with auth')
       res.sendStatus(403);
     } else {
-      console.log('dialog list request from ' + authData.username)
       const the_process = spawn("py", [`chat/dialogList.py`, authData.username]);
 
       // it seems, python writes into stdout everything way faster then js can read it
@@ -193,7 +139,6 @@ app.post('/api/dialog-list', verifyToken, (req, res) => {
         const dialog_list = (data.toString()).split('.')
         dialog_list.pop()
         res.json(JSON.stringify(dialog_list))
-
       })
     }
   })
@@ -221,8 +166,7 @@ io.on("connection", (socket) => {
         console.log('connection attempt failed: wrong token')
         socket.emit('wrongToken')
       } else {
-
-        function messageListBossSecondStage(data, receivedMessages) {
+        function messageListSecondStage(data, receivedMessages) {
           const sentMessages = {}
           if (data !== {}) {
             const sentMessagesNames = (data.toString()).split('.')
@@ -271,7 +215,7 @@ io.on("connection", (socket) => {
           })();
         }
 
-        function messageListBossFirstStage(data) {
+        function messageListFirstStage(data) {
           const receivedMessages = {}
 
           if (data !== {}) {
@@ -283,21 +227,18 @@ io.on("connection", (socket) => {
           }
 
           const StageTwoProcess = spawn('py', [`chat/messageList.py`, authData.username, user])
-          StageTwoProcess.stdout.on('data', (zxcasd) => { messageListBossSecondStage(zxcasd, receivedMessages) })
-          StageTwoProcess.on('exit', (code, signal) => { if (code === 1) messageListBossSecondStage({}, receivedMessages) })
+          StageTwoProcess.stdout.on('data', (zxcasd) => { messageListSecondStage(zxcasd, receivedMessages) })
+          StageTwoProcess.on('exit', (code, signal) => { if (code === 1) messageListSecondStage({}, receivedMessages) })
         }
 
         const StageOneProcess = spawn('py', [`chat/messageList.py`, user, authData.username])
         if (user !== authData.username) {
-          StageOneProcess.stdout.on('data', (data) => { messageListBossFirstStage(data) })
-          StageOneProcess.on('exit', (code, signal) => { if (code === 1) messageListBossFirstStage({}) })
+          StageOneProcess.stdout.on('data', (data) => { messageListFirstStage(data) })
+          StageOneProcess.on('exit', (code, signal) => { if (code === 1) messageListFirstStage({}) })
         }
         else {
-          StageOneProcess.stdout.on('data', (data) => { messageListBossSecondStage(data, {}) })
+          StageOneProcess.stdout.on('data', (data) => { messageListSecondStage(data, {}) })
         }
-
-
-        // socket.emit('message', { sender: username, msFromEpoch, message })
       }
     })
   })
@@ -317,8 +258,7 @@ io.on("connection", (socket) => {
 
 
 });
-/* setting the port for our server
-it is either default (3000) 
+/* setting the port for our server: it is either default (3000) 
 or the number specified by the environment where the server is being ran */
 const PORT = 3000 || process.env.PORT;
 
