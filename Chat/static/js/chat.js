@@ -197,6 +197,7 @@ socket.emit('online', { token: token })
 
 const userSearchField = document.querySelector(`input[type="search"]`)
 const replyField = document.querySelector(`input[type="text"]`)
+const fileAttachButton = document.querySelector(`input[type="file"]`)
 const added_chats = {}
 const last_messages = {}
 let selectedChat = 0
@@ -223,6 +224,9 @@ replyField.addEventListener('keydown', (event) => {
     socket.emit("messageSent", { message: message, recepient: selectedChat, msFromEpoch: msFromEpoch })
 })
 
+fileAttachButton.addEventListener('change', () => {
+    socket.emit()
+})
 loadDialogs()
 
 
