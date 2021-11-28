@@ -144,7 +144,6 @@ app.post('/api/dialog-list', verifyToken, (req, res) => {
   })
 })
 
-
 io.on("connection", (socket) => {
 
   socket.on('online', ({ token }) => {
